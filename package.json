@@ -1,0 +1,20 @@
+{
+	"scripts": {
+		"start": "node app.js",
+		"dev": "nodemon app.js"
+	},
+	"dependencies": {
+		"discord.js": "^14.6.0",
+		"dotenv": "^16.0.3"
+	},
+	"name": "shopping-discord-bot",
+	"version": "1.0.0",
+	"main": "app.js",
+	"repository": "https://github.com/FranP-code/shopping-discord-bot",
+	"author": "Francisco Pessano <franpessano1@gmail.com>",
+	"license": "MIT",
+	"devDependencies": {
+		"eslint": "^8.27.0",
+		"nodemon": "^2.0.20"
+	}
+}
