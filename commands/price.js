@@ -72,8 +72,12 @@ const responses = {
 		'es-ES': 'ERROR: Plataforma no encontrada!!',
 	},
 	'platformInBrowser': {
-		'en-US': 'Search in %P on browser ',
+		'en-US': 'Search in %P on browser',
 		'es-ES': 'Buscar en %P en el buscador',
+	},
+	'errorScrapping': {
+		'en-US': 'No products could be found in:',
+		'es-ES': 'No se pudieron encontrar productos en:',
 	},
 };
 
@@ -155,6 +159,7 @@ module.exports = {
 		const countryPages = countryData[country].pages.filter(countryPage => platform ? countryPage.name === platform : countryPage);
 		const productPrices = [];
 		const pagesScraped = [];
+		const pagesWithErrorScrapping = [];
 		for (const countryPage of countryPages) {
 			try {
 				const browser = await puppeteer.launch() ;
@@ -165,7 +170,11 @@ module.exports = {
 
 				const { window: { document } } = new jsdom.JSDOM(body);
 
-				document.querySelectorAll(countryPage.selectors.container)
+				const products = document.querySelectorAll(countryPage.selectors.container);
+				if (!products.length) {
+					throw Error();
+				}
+				products
 					.forEach((element) => {
 						if (productPrices.length >= ELEMENTS_LIMIT) {
 							return;
@@ -182,19 +191,19 @@ module.exports = {
 							);
 							const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
 							const price = `${countryData[country].currency} ${bold(priceNumber)}`;
-							productPrices.push(`${link} - ${price}`);
+							productPrices.push(`${link} | ${price}`);
 						}
 						catch (err) {
 							console.log(`FUCK ${countryPage.name} MAQUETATION`);
-							console.log(err);
+							console.error(err);
 						}
 					});
-
 				await browser.close();
 				pagesScraped.push({ name: countryPage.name, searchUrl: encodeURI(searchUrl) });
 			}
 			catch (err) {
-				console.error(`FUCK ${countryPage.name}`);
+				pagesWithErrorScrapping.push(countryPage.name);
+				console.log(`FUCK ${countryPage.name}`);
 				console.error(err);
 			}
 		}
@@ -208,9 +217,12 @@ module.exports = {
 				)),
 		);
 		const replyTexts = [
-			`${responses.extractedFrom[userLanguage]} ${pagesScraped.map(({ name }) => name).join(' ')}`,
+			pagesScraped.length &&
+				`${responses.extractedFrom[userLanguage]} ${pagesScraped.map(({ name }) => name).join(' ')}`,
 			`${productPrices.join('\n')}`,
-		];
+			pagesWithErrorScrapping.length &&
+				`${responses.errorScrapping[userLanguage]} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
+		].filter(a => a);
 		await interaction.editReply({ content: replyTexts.join('\n\n'), components: [...buttons] });
 	},
 };
