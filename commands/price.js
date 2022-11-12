@@ -2,6 +2,10 @@ const { SlashCommandSubcommandBuilder, hyperlink, bold, ActionRowBuilder, Button
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
 
+function truncateText(text, max) {
+	return text.substr(0, max - 1).trim() + (text.length > max ? '...' : '');
+}
+
 const countryData = {
 	'ar': {
 		name: 'Argentina',
@@ -171,8 +175,9 @@ module.exports = {
 								.querySelector(countryPage.selectors.link)
 								.getAttribute('href')
 								.replace(/.*\/\/[^/]*/, '');
+							const productName = element.querySelector(countryPage.selectors.title).textContent;
 							const link = hyperlink(
-								element.querySelector(countryPage.selectors.title).textContent,
+								truncateText(productName, 100),
 								countryPage.productUrl.replace('%S', encodeURI(productRelativePath)),
 							);
 							const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
@@ -202,7 +207,6 @@ module.exports = {
 						.setStyle(ButtonStyle.Link),
 				)),
 		);
-
 		const replyTexts = [
 			`${responses.extractedFrom[userLanguage]} ${pagesScraped.map(({ name }) => name).join(' ')}`,
 			`${productPrices.join('\n')}`,
