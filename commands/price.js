@@ -162,7 +162,9 @@ module.exports = {
 		const pagesWithErrorScrapping = [];
 		for (const countryPage of countryPages) {
 			try {
-				const browser = await puppeteer.launch() ;
+				const browser = await puppeteer.launch({
+					args: ['--no-sandbox'],
+				}) ;
 				const page = await browser.newPage();
 				const searchUrl = countryPage.searchUrl.replace('%S', product);
 				const response = await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });

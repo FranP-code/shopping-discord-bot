@@ -1,0 +1,61 @@
+{
+  "providers": [],
+  "buildImage": "ghcr.io/railwayapp/nixpacks:debian-1667866002",
+  "variables": {
+    "CI": "true",
+    "NIXPACKS_METADATA": "node",
+    "NODE_ENV": "production",
+    "NPM_CONFIG_PRODUCTION": "false"
+  },
+  "phases": {
+    "build": {
+      "dependsOn": [
+        "install"
+      ],
+      "cacheDirectories": [
+        "node_modules/.cache"
+      ]
+    },
+    "install": {
+      "dependsOn": [
+        "setup"
+      ],
+      "cmds": [
+        "yarn install --frozen-lockfile && node node_modules/puppeteer/install.js"
+      ],
+      "cacheDirectories": [
+        "/usr/local/share/.cache/yarn/v6"
+      ],
+      "paths": [
+        "/app/node_modules/.bin"
+      ]
+    },
+    "setup": {
+      "nixPkgs": [
+        "nodejs-18_x",
+        "yarn-1_x"
+      ],
+      "nixOverlays": [
+        "https://github.com/railwayapp/nix-npm-overlay/archive/main.tar.gz"
+      ],
+      "nixpkgsArchive": "a0b7e70db7a55088d3de0cc370a59f9fbcc906c3",
+      "aptPkgs": [
+        "chromium",
+        "libnss3",
+        "libatk1.0-0",
+        "libatk-bridge2.0-0",
+        "libcups2",
+        "libgbm1",
+        "libasound2",
+        "libpangocairo-1.0-0",
+        "libxss1",
+        "libgtk-3-0",
+        "libxshmfence1",
+        "libglu1"
+      ]
+    }
+  },
+  "start": {
+    "cmd": "yarn run start"
+  }
+}
