@@ -1,4 +1,4 @@
-const { SlashCommandSubcommandBuilder, hyperlink, bold } = require('discord.js');
+const { SlashCommandSubcommandBuilder, hyperlink, bold, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
 
@@ -67,6 +67,10 @@ const responses = {
 		'en-US': 'ERROR: Platform don\'t found!!',
 		'es-ES': 'ERROR: Plataforma no encontrada!!',
 	},
+	'platformInBrowser': {
+		'en-US': 'Search in %P on browser ',
+		'es-ES': 'Buscar en %P en el buscador',
+	},
 };
 
 const ELEMENTS_LIMIT = 3;
@@ -129,11 +133,12 @@ module.exports = {
 		);
 	},
 	async execute(interaction) {
+		const userLanguage = interaction.locale || 'en-US';
 		await interaction.deferReply();
 		const product = interaction.options.getString('product');
 		const platform = interaction.options.getString('platform');
 		if (platform && !pages.some(page => (page.name === platform))) {
-			await interaction.editReply(responses.missingPlatform[interaction.locale]);
+			await interaction.editReply(responses.missingPlatform[userLanguage]);
 			return;
 		}
 		const country = interaction.options.getString('country') ||
@@ -146,13 +151,12 @@ module.exports = {
 		const countryPages = countryData[country].pages.filter(countryPage => platform ? countryPage.name === platform : countryPage);
 		const productPrices = [];
 		const pagesScraped = [];
-		try {
-			for (const countryPage of countryPages) {
+		for (const countryPage of countryPages) {
+			try {
 				const browser = await puppeteer.launch() ;
 				const page = await browser.newPage();
-				const response = await page.goto(
-					countryPage.searchUrl.replace('%S', product), { waitUntil: 'domcontentloaded' },
-				);
+				const searchUrl = countryPage.searchUrl.replace('%S', product);
+				const response = await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
 				const body = await response.text();
 
 				const { window: { document } } = new jsdom.JSDOM(body);
@@ -169,7 +173,7 @@ module.exports = {
 								.replace(/.*\/\/[^/]*/, '');
 							const link = hyperlink(
 								element.querySelector(countryPage.selectors.title).textContent,
-								countryPage.productUrl.replace('%S', productRelativePath),
+								countryPage.productUrl.replace('%S', encodeURI(productRelativePath)),
 							);
 							const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
 							const price = `${countryData[country].currency} ${bold(priceNumber)}`;
@@ -182,12 +186,27 @@ module.exports = {
 					});
 
 				await browser.close();
-				pagesScraped.push(countryPage.name);
+				pagesScraped.push({ name: countryPage.name, searchUrl: encodeURI(searchUrl) });
+			}
+			catch (err) {
+				console.error(`FUCK ${countryPage.name}`);
+				console.error(err);
 			}
 		}
-		catch (err) {
-			console.error(err);
-		}
-		await interaction.editReply(`${responses.extractedFrom[interaction.locale || 'en-US']} ${pagesScraped.join(' ')}\n\n${productPrices.join('\n')}`);
+		const buttons = pagesScraped.map(page =>
+			(new ActionRowBuilder()
+				.addComponents(
+					new ButtonBuilder()
+						.setLabel(responses.platformInBrowser[userLanguage].replace('%P', page.name))
+						.setURL(page.searchUrl)
+						.setStyle(ButtonStyle.Link),
+				)),
+		);
+
+		const replyTexts = [
+			`${responses.extractedFrom[userLanguage]} ${pagesScraped.map(({ name }) => name).join(' ')}`,
+			`${productPrices.join('\n')}`,
+		];
+		await interaction.editReply({ content: replyTexts.join('\n\n'), components: [...buttons] });
 	},
 };
