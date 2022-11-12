@@ -1,6 +1,6 @@
 {
 	"scripts": {
-		"start": "node app.js",
+		"start": "node deploy-commands.js && node app.js",
 		"dev": "node deploy-commands.js && nodemon app.js"
 	},
 	"dependencies": {
