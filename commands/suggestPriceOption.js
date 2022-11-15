@@ -1,18 +1,12 @@
 const { SlashCommandSubcommandBuilder } = require('discord.js');
+const { urlRegex, responses } = require('../constants');
 require('dotenv').config();
-
-const responses = {
-	'suggestionSended': {
-		'en-US': `Suggestion sended to <@${process.env.MY_DISCORD_USER_ID}>`,
-		'es-ES': `Sugerencia enviada a <@${process.env.MY_DISCORD_USER_ID}>`,
-	},
-};
 
 module.exports = {
 	data: new SlashCommandSubcommandBuilder()
-		.setName('suggest')
+		.setName('suggest-option')
 		.setNameLocalizations({
-			'es-ES': 'sugerir',
+			'es-ES': 'sugerir-opción',
 		})
 		.setDescription('Suggest a new country and/or platform for add to the bot')
 		.setDescriptionLocalizations({
@@ -42,9 +36,16 @@ module.exports = {
 		const country = interaction.options.getString('country');
 		const platform = interaction.options.getString('platform');
 		const suggestion = [country, platform].filter(a => a).join(' - ');
-
+		if (!country && !platform) {
+			interaction.reply(responses(userLanguage).notSuggest);
+			return;
+		}
+		if (urlRegex.test(suggestion)) {
+			interaction.reply(responses(userLanguage).linksNotAllowed);
+			return;
+		}
 		const notificationsChannel = interaction.client.channels.cache.get(process.env.NOTIFICATION_DISCORD_CHANNEL_ID);
-		notificationsChannel.send(`SUGGESTION: ${suggestion}`);
-		await interaction.reply(responses.suggestionSended[userLanguage]);
+		notificationsChannel.send(`SUGGESTION of country: ${suggestion}`);
+		await interaction.reply(responses(userLanguage).suggestionSended);
 	},
 };

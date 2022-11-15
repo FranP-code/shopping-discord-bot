@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { Collection, Client, GatewayIntentBits, Events } = require('discord.js');
+const { getRandomElementFromArray } = require('./constants');
 require('dotenv').config();
+
+const enviroment = process.env.NODE_ENV;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -9,7 +12,7 @@ client.on('ready', () => {
 	console.log('working');
 });
 
-client.login(process.env.BOT_TOKEN);
+client.login(enviroment === 'production' ? process.env.PROD_BOT_TOKEN : process.env.DEV_BOT_TOKEN);
 
 client.commands = new Collection();
 
@@ -28,6 +31,10 @@ for (const file of commandFiles) {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
+	if (enviroment !== 'production' && interaction.user.id !== process.env.MY_DISCORD_USER_ID) {
+		interaction.reply(`The dev instance of this bot is only for ${getRandomElementFromArray([`<@${process.env.MY_DISCORD_USER_ID}>`, 'the king'])}`);
+		return;
+	}
 	const command = interaction.client.commands.get(interaction.commandName);
 	if (interaction.isChatInputCommand()) {
 		try {

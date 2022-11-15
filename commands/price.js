@@ -1,6 +1,7 @@
 const { SlashCommandSubcommandBuilder, hyperlink, bold, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
+const { responses } = require('../constants');
 
 function truncateText(text, max) {
 	return text.substr(0, max - 1).trim() + (text.length > max ? '...' : '');
@@ -61,25 +62,6 @@ const countryData = {
 };
 
 const pages = Object.values(countryData).map((country) => country.pages).flat(1);
-
-const responses = {
-	'extractedFrom': {
-		'en-US': 'Prices extracted from:',
-		'es-ES': 'Precios extraídos de:',
-	},
-	'missingPlatform': {
-		'en-US': 'ERROR: Platform don\'t found!!',
-		'es-ES': 'ERROR: Plataforma no encontrada!!',
-	},
-	'platformInBrowser': {
-		'en-US': 'Search in %P on browser',
-		'es-ES': 'Buscar en %P en el buscador',
-	},
-	'errorScrapping': {
-		'en-US': 'No products could be found in:',
-		'es-ES': 'No se pudieron encontrar productos en:',
-	},
-};
 
 const ELEMENTS_LIMIT = 3;
 
@@ -146,7 +128,7 @@ module.exports = {
 		const product = interaction.options.getString('product');
 		const platform = interaction.options.getString('platform');
 		if (platform && !pages.some(page => (page.name === platform))) {
-			await interaction.editReply(responses.missingPlatform[userLanguage]);
+			await interaction.editReply(responses(userLanguage).missingPlatform);
 			return;
 		}
 		const country = interaction.options.getString('country') ||
@@ -213,17 +195,17 @@ module.exports = {
 			(new ActionRowBuilder()
 				.addComponents(
 					new ButtonBuilder()
-						.setLabel(responses.platformInBrowser[userLanguage].replace('%P', page.name))
+						.setLabel(responses(userLanguage).platformInBrowser.replace('%P', page.name))
 						.setURL(page.searchUrl)
 						.setStyle(ButtonStyle.Link),
 				)),
 		);
 		const replyTexts = [
 			pagesScraped.length &&
-				`${responses.extractedFrom[userLanguage]} ${pagesScraped.map(({ name }) => name).join(' ')}`,
+				`${responses(userLanguage).extractedFrom} ${pagesScraped.map(({ name }) => name).join(' ')}`,
 			`${productPrices.join('\n')}`,
 			pagesWithErrorScrapping.length &&
-				`${responses.errorScrapping[userLanguage]} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
+				`${responses(userLanguage).errorScrapping} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
 		].filter(a => a);
 		await interaction.editReply({ content: replyTexts.join('\n\n'), components: [...buttons] });
 	},
