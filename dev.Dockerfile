@@ -29,4 +29,4 @@ WORKDIR /usr/src/app
 COPY package.json ./
 COPY . ./
 RUN yarn install --frozen-lockfile && node node_modules/puppeteer/install.js
-CMD yarn run start
+CMD yarn run dev
