@@ -33,6 +33,10 @@ const responsesTexts = {
 		'en-US': 'Links aren\'t allowed :/',
 		'es-ES': 'No esta permitido enviar links :/',
 	},
+	discordMessageLengthLimit: {
+		'en-US': 'Sorry, the links of this product exceeds the limit of characters by discord message.\n\nPlease try again with a lower quantity of results.',
+		'es-ES': 'Lo sentimos, los enlaces de este producto exceden el límite de caracteres por mensaje de discord.\n\nPor favor, intente nuevamente con una menor cantidad de resultados.',
+	},
 };
 function responses(userLanguage) {
 	const responsesEntries = Object.entries(responsesTexts);

@@ -64,6 +64,7 @@ const countryData = {
 const pages = Object.values(countryData).map((country) => country.pages).flat(1);
 
 const ELEMENTS_LIMIT = 3;
+const DISCORD_MESSAGE_LENGTH_LIMIT = 2000;
 
 module.exports = {
 	data: new SlashCommandSubcommandBuilder()
@@ -207,6 +208,11 @@ module.exports = {
 			pagesWithErrorScrapping.length &&
 				`${responses(userLanguage).errorScrapping} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
 		].filter(a => a);
-		await interaction.editReply({ content: replyTexts.join('\n\n'), components: [...buttons] });
+		const response = replyTexts.join('\n\n');
+		let content;
+		if (response.length >= DISCORD_MESSAGE_LENGTH_LIMIT) {
+			content = responses(userLanguage).discordMessageLengthLimit;
+		}
+		await interaction.editReply({ content, components: [...buttons] });
 	},
 };
