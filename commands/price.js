@@ -2,6 +2,7 @@ const { SlashCommandSubcommandBuilder, hyperlink, bold, ActionRowBuilder, Button
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
 const { responses } = require('../constants');
+const { default: axios } = require('axios');
 
 function truncateText(text, max) {
 	return text.substr(0, max - 1).trim() + (text.length > max ? '...' : '');
@@ -63,7 +64,7 @@ const countryData = {
 
 const pages = Object.values(countryData).map((country) => country.pages).flat(1);
 
-const ELEMENTS_LIMIT = 3;
+const ELEMENTS_LIMIT = 5;
 
 module.exports = {
 	data: new SlashCommandSubcommandBuilder()
@@ -135,7 +136,7 @@ module.exports = {
 			(platform ?
 				Object.entries(countryData)
 					.map(([key, value]) => value.pages.some(page => page.name === platform) ? key : false)
-					.filter(a => a)[0]
+					.filter(countryValues => countryValues)[0]
 				: 'us'
 			);
 		const countryPages = countryData[country].pages.filter(countryPage => platform ? countryPage.name === platform : countryPage);
@@ -158,32 +159,73 @@ module.exports = {
 				if (!products.length) {
 					throw Error();
 				}
-				products
-					.forEach((element) => {
-						if (productPrices.length >= ELEMENTS_LIMIT) {
-							return;
-						}
-						try {
-							const productRelativePath = element
-								.querySelector(countryPage.selectors.link)
-								.getAttribute('href')
-								.replace(/.*\/\/[^/]*/, '');
-							const productName = element.querySelector(countryPage.selectors.title).textContent;
-							const link = hyperlink(
-								truncateText(productName, 100),
-								countryPage.productUrl.replace('%S', encodeURI(productRelativePath)),
-							);
-							const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
-							const price = `${countryData[country].currency} ${bold(priceNumber)}`;
-							productPrices.push(`${link} | ${price}`);
-						}
-						catch (err) {
-							console.log(`FUCK ${countryPage.name} MAQUETATION`);
-							console.error(err);
-						}
-					});
+				const abc = async (element, index) => {
+					if (index >= ELEMENTS_LIMIT) {
+						return;
+					}
+					try {
+						const productRelativePath = element
+							.querySelector(countryPage.selectors.link)
+							.getAttribute('href')
+							.replace(/.*\/\/[^/]*/, '');
+						const productName = element.querySelector(countryPage.selectors.title).textContent;
+						const link = countryPage.productUrl.replace('%S', encodeURI(productRelativePath));
+						console.log(link);
+						const shortlyData = await axios.post('https://shortly.franp.site/add-url', {}, {
+							headers: {
+								Accept: '*/*',
+								url: link,
+								username: process.env.SHORTLY_USERNAME,
+								password:  process.env.SHORTLY_PASSWORD,
+							},
+						});
+						const formatedLink = hyperlink(
+							truncateText(productName, 100),
+							`https://shortly.franp.site/${shortlyData.data.url.id}`,
+						);
+						const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
+						const price = `${countryData[country].currency} ${bold(priceNumber)}`;
+						productPrices.push(`${formatedLink} | ${price}`);
+					}
+					catch (err) {
+						console.log(`FUCK ${countryPage.name} MAQUETATION`);
+						console.error(err.response);
+					}
+				};
+				let i = 0;
+				for (const iterator of products) {
+					await abc(iterator, i);
+					i++;
+				}
+				// products
+				// 	.forEach((element) => {
+				// 		if (productPrices.length >= ELEMENTS_LIMIT) {
+				// 			return;
+				// 		}
+				// 		try {
+				// 			const productRelativePath = element
+				// 				.querySelector(countryPage.selectors.link)
+				// 				.getAttribute('href')
+				// 				.replace(/.*\/\/[^/]*/, '');
+				// 			const productName = element.querySelector(countryPage.selectors.title).textContent;
+				// 			const link = hyperlink(
+				// 				truncateText(productName, 100),
+				// 				countryPage.productUrl.replace('%S', encodeURI(productRelativePath)),
+				// 			);
+				// 			const priceNumber = element.querySelector(countryPage.selectors.price).textContent.replace('$', '').replace(' ', '');
+				// 			const price = `${countryData[country].currency} ${bold(priceNumber)}`;
+				// 			productPrices.push(`${link} | ${price}`);
+				// 		}
+				// 		catch (err) {
+				// 			console.log(`FUCK ${countryPage.name} MAQUETATION`);
+				// 			console.error(err);
+				// 		}
+				// 	});
 				await browser.close();
-				pagesScraped.push({ name: countryPage.name, searchUrl: encodeURI(searchUrl) });
+				const shoppingUrl = encodeURI(searchUrl);
+				console.log('a');
+				console.log(shoppingUrl);
+				pagesScraped.push({ name: countryPage.name, searchUrl: shoppingUrl });
 			}
 			catch (err) {
 				pagesWithErrorScrapping.push(countryPage.name);
@@ -206,7 +248,8 @@ module.exports = {
 			`${productPrices.join('\n')}`,
 			pagesWithErrorScrapping.length &&
 				`${responses(userLanguage).errorScrapping} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
-		].filter(a => a);
+		].filter(text => text);
+		console.log(replyTexts.join('\n\n').length);
 		await interaction.editReply({ content: replyTexts.join('\n\n'), components: [...buttons] });
 	},
 };
