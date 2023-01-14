@@ -1,13 +1,13 @@
 {
 	"scripts": {
 		"start": "node deploy-commands.js && node app.js",
-		"dev": "node deploy-commands.js && nodemon app.js"
+		"dev": "node deploy-commands.js && nodemon -L app.js"
 	},
 	"dependencies": {
 		"discord.js": "^14.6.0",
 		"dotenv": "^16.0.3",
 		"jsdom": "^20.0.2",
-		"puppeteer": "^19.2.2"
+		"puppeteer": "16.2.0"
 	},
 	"name": "shopping-discord-bot",
 	"version": "1.0.0",
