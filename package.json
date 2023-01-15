@@ -1,7 +1,7 @@
 {
 	"scripts": {
-		"start": "node deploy-commands.js && node app.js",
-		"dev": "node deploy-commands.js && nodemon -L app.js"
+		"start": "node deploy-commands.js && npx tsc && node dist/app.js",
+		"dev": "npx tsc && node deploy-commands.js && nodemon -L src/app.ts"
 	},
 	"dependencies": {
 		"discord.js": "^14.6.0",
@@ -16,7 +16,11 @@
 	"author": "Francisco Pessano <franpessano1@gmail.com>",
 	"license": "MIT",
 	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^5.48.1",
+		"@typescript-eslint/parser": "^5.48.1",
 		"eslint": "^8.27.0",
-		"nodemon": "^2.0.20"
+		"nodemon": "^2.0.20",
+		"ts-node": "^10.9.1",
+		"typescript": "^4.9.4"
 	}
 }

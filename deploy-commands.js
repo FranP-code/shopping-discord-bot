@@ -4,8 +4,12 @@ require('dotenv').config();
 
 const enviroment = process.env.NODE_ENV;
 
+const commandFilesDir = enviroment === "production" ? './dist/commands' : './src/commands'
+const commandFilesExtension = enviroment === "production" ? '.js' : '.ts'
+
 const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+// const commandFiles = fs.readdirSync(commandFilesDir).filter(file => file.endsWith(commandFilesExtension));
+const commandFiles = fs.readdirSync('./dist/commands').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);
