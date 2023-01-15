@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Collection, Client, GatewayIntentBits, Events } = require('discord.js');
-const { getRandomElementFromArray } = require('./constants');
+const { getRandomElementFromArray } = require('./utils/constants');
 require('dotenv').config();
 
 const enviroment = process.env.NODE_ENV;

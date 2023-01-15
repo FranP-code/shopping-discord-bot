@@ -1,70 +1,11 @@
 const { SlashCommandSubcommandBuilder, hyperlink, bold, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const puppeteer = require('puppeteer');
 const jsdom = require('jsdom');
-const { responses } = require('../constants');
-
-function truncateText(text, max) {
-	return text.substr(0, max - 1).trim() + (text.length > max ? '...' : '');
-}
-
-const countryData = {
-	'ar': {
-		name: 'Argentina',
-		currency: 'ARS',
-		pages: [
-			{
-				name: 'Mercado Libre (Argentina)',
-				searchUrl: 'https://listado.mercadolibre.com.ar/%S#D%5BA:%S',
-				productUrl: 'https://articulo.mercadolibre.com.ar%S',
-				selectors: {
-					container: 'div.andes-card.ui-search-result',
-					link: 'a.ui-search-link',
-					price: 'span.price-tag-fraction',
-					title: 'h2.ui-search-item__title.shops__item-title',
-				},
-			},
-		],
-	},
-	'us': {
-		name: 'United States',
-		currency: 'USD',
-		pages: [
-			{
-				name: 'Amazon (United States)',
-				searchUrl: 'https://www.amazon.com/s?k=%S',
-				productUrl: 'https://www.amazon.com%S',
-				selectors: {
-					container: 'div.s-card-container > div.a-section > div.sg-row',
-					link: 'h2.a-size-mini a.a-link-normal',
-					price: 'span.a-price span.a-offscreen',
-					title: 'h2.a-size-mini span.a-size-medium',
-				},
-			},
-		],
-	},
-	'cl': {
-		name: 'Chile',
-		currency: 'CLP',
-		pages: [
-			{
-				name: 'Falabella',
-				searchUrl: 'https://www.falabella.com/falabella-cl/search?Ntt=%S',
-				productUrl: 'https://www.falabella.com%S',
-				selectors: {
-					container: 'div.pod-4_GRID',
-					link: 'a',
-					price: 'div.prices span.copy10',
-					title: 'div.pod-details a.pod-link span > b.pod-subTitle',
-				},
-			},
-		],
-	},
-};
+const { countryData, DISCORD_MESSAGE_LENGTH_LIMIT } = require('../utils/constants');
+const truncateText = require('../scripts/truncateText');
+const generateLocalizedResponses = require('../scripts/generateLocalizedResponses');
 
 const pages = Object.values(countryData).map((country) => country.pages).flat(1);
-
-const ELEMENTS_LIMIT = 3;
-const DISCORD_MESSAGE_LENGTH_LIMIT = 2000;
 
 module.exports = {
 	data: new SlashCommandSubcommandBuilder()
@@ -113,6 +54,18 @@ module.exports = {
 			})
 			.setMaxLength(200)
 			.setAutocomplete(true),
+		)
+		.addIntegerOption(option => option
+			.setName('limit')
+			.setNameLocalizations({
+				'es-ES': 'límite',
+			})
+			.setDescription('Define the limit of results of search')
+			.setDescriptionLocalizations({
+				'es-ES': 'Definir el límite de resultados de la busqueda',
+			})
+			.setMaxValue(5)
+			,
 		),
 	async autocomplete(interaction) {
 		const focusedValue = interaction.options.getFocused();
@@ -128,8 +81,9 @@ module.exports = {
 		await interaction.deferReply();
 		const product = interaction.options.getString('product');
 		const platform = interaction.options.getString('platform');
+		const ELEMENTS_LIMIT = interaction.options.getInteger('limit') || 3;
 		if (platform && !pages.some(page => (page.name === platform))) {
-			await interaction.editReply(responses(userLanguage).missingPlatform);
+			await interaction.editReply(generateLocalizedResponses(userLanguage).missingPlatform);
 			return;
 		}
 		const country = interaction.options.getString('country') ||
@@ -196,22 +150,25 @@ module.exports = {
 			(new ActionRowBuilder()
 				.addComponents(
 					new ButtonBuilder()
-						.setLabel(responses(userLanguage).platformInBrowser.replace('%P', page.name))
+						.setLabel(generateLocalizedResponses(userLanguage).platformInBrowser.replace('%P', page.name))
 						.setURL(page.searchUrl)
 						.setStyle(ButtonStyle.Link),
 				)),
 		);
 		const replyTexts = [
 			pagesScraped.length &&
-				`${responses(userLanguage).extractedFrom} ${pagesScraped.map(({ name }) => name).join(' ')}`,
+				`${generateLocalizedResponses(userLanguage).extractedFrom} ${pagesScraped.map(({ name }) => name).join(' ')}`,
 			`${productPrices.join('\n')}`,
 			pagesWithErrorScrapping.length &&
-				`${responses(userLanguage).errorScrapping} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
+				`${generateLocalizedResponses(userLanguage).errorScrapping} ${pagesWithErrorScrapping.map((name) => name).join(' ')}`,
 		].filter(a => a);
 		const response = replyTexts.join('\n\n');
 		let content;
 		if (response.length >= DISCORD_MESSAGE_LENGTH_LIMIT) {
-			content = responses(userLanguage).discordMessageLengthLimit;
+			content = generateLocalizedResponses(userLanguage).discordMessageLengthLimit;
+		}
+		else {
+			content = response;
 		}
 		await interaction.editReply({ content, components: [...buttons] });
 	},

@@ -1,5 +1,6 @@
 const { SlashCommandSubcommandBuilder } = require('discord.js');
-const { urlRegex, responses } = require('../constants');
+const generateLocalizedResponses = require('../scripts/generateLocalizedResponses');
+const { urlRegex } = require('../utils/constants');
 require('dotenv').config();
 
 module.exports = {
@@ -26,16 +27,16 @@ module.exports = {
 		const userLanguage = interaction.locale || 'en-US';
 		const suggestion = interaction.options.getString('text');
 		if (!suggestion) {
-			interaction.reply(responses(userLanguage).notSuggest);
+			interaction.reply(generateLocalizedResponses(userLanguage).notSuggest);
 			return;
 		}
 		if (urlRegex.test(suggestion)) {
-			interaction.reply(responses(userLanguage).linksNotAllowed);
+			interaction.reply(generateLocalizedResponses(userLanguage).linksNotAllowed);
 			return;
 		}
 
 		const notificationsChannel = interaction.client.channels.cache.get(process.env.NOTIFICATION_DISCORD_CHANNEL_ID);
 		notificationsChannel.send(`SUGGESTION: ${suggestion}`);
-		await interaction.reply(responses(userLanguage).suggestionSended);
+		await interaction.reply(generateLocalizedResponses(userLanguage).suggestionSended);
 	},
 };
